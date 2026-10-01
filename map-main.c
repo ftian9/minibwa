@@ -72,7 +72,7 @@ static void worker_for_se_batch(void *data, long i, int tid)
 		}
 	}
 	assert(p == n);
-	mb_seed_intv_batch(km, idx->bwt, n, len, seq, opt->min_len, opt->max_sub_occ, sai);
+	mb_seed_intv_batch(km, idx->bwt, n, len, seq, opt->min_len, opt->max_sub_occ, opt->max_mem_intv, sai);
 	kfree(km, seq);
 	kfree(km, len);
 	kfree(km, buf);
@@ -372,6 +372,7 @@ static int usage_map(FILE *fp, const mb_opt_t *opt)
 	fprintf(fp, "  Mapping:\n");
 	fprintf(fp, "    -k INT           min seed length [%d]\n", opt->min_len);
 	fprintf(fp, "    -c NUM           max seed occurrences [%d]\n", opt->max_occ);
+	fprintf(fp, "    -M INT           3rd-round seeding occurrence; 0 to disable; 20 matches BWA-MEM [%d]\n", opt->max_mem_intv);
 	fprintf(fp, "    -g NUM           max gap size, controlling extension and chain breaking [%d]\n", opt->max_gap);
 	fprintf(fp, "    -w NUM           bandwidth [%d]\n", opt->bw);
 	fprintf(fp, "    -W NUM           long bandwidth (for long reads or the adaptive mode) [%d]\n", opt->bw_long);
@@ -434,7 +435,7 @@ static void set_ins_size(mb_opt_t *opt, const char *arg)
 
 int main_map(int argc, char *argv[])
 {
-	const char *opt_str = "x:o:k:c:m:p:A:B:U:b:O:E:t:K:N:PyYR:H:aul:w:W:g:5s:fI:";
+	const char *opt_str = "x:o:k:c:m:p:A:B:U:b:O:E:t:K:N:PyYR:H:aul:w:W:g:5s:fI:M:";
 	int32_t c, use_mmap = 0, mmap_preload = 1, is_meth = 0;
 	mb_idx_t *idx;
 	mb_opt_t mo;
@@ -460,6 +461,7 @@ int main_map(int argc, char *argv[])
 	o = KETOPT_INIT;
 	while ((c = ketopt(&o, argc, argv, 1, opt_str, long_options)) >= 0) {
 		if (c == 'k') mo.min_len = atoi(o.arg);
+		else if (c == 'M') mo.max_mem_intv = atoi(o.arg);
 		else if (c == 'c') mo.max_occ = kom_parse_num(o.arg, 0);
 		else if (c == 'p') mo.pri_ratio = atof(o.arg);
 		else if (c == 'm') mo.min_chain_score = atoi(o.arg);

@@ -42,6 +42,7 @@ typedef struct {
 	int32_t min_len; // min seed length
 	int32_t max_sub_occ; // look for shorter seed if smem occ below this value
 	int32_t max_occ; // max interval occurrence
+	int32_t max_mem_intv; // 3rd-round seeding: keep a seed when occ drops below this; 0 to disable
 	// general algorithm options
 	int32_t bw, bw_long; // bandwidth
 	int32_t max_gap; // break a chain if there are no seeds in a max_gap window

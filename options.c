@@ -10,6 +10,7 @@ static void mb_opt_reset(mb_opt_t *opt)
 	// seeding options
 	opt->max_sub_occ = 10;
 	opt->max_occ = 250;
+	opt->max_mem_intv = 0; // 0 disables 3rd-round seeding; 20 matches bwa-mem -y
 	// chaining options
 	opt->max_chain_skip = 25;
 	opt->max_chain_iter = 5000;

@@ -276,6 +276,32 @@ static int64_t mb_bwt_back(const mb_bwt_t *f, const uint8_t *q, int64_t st, int6
 	return i;
 }
 
+// bwa-mem 3rd-round seeding (bwt_seed_strategy1): keep the match at the first
+// base where occurrence drops below max_intv and the span is long enough.
+int64_t mb_bwt_seed3(const mb_bwt_t *bwt, int32_t len, const uint8_t *q, int64_t x, int32_t min_len, int32_t max_intv, mb_sai_t *mem)
+{
+	int64_t i;
+	int c;
+	mb_sai_t ik, ok[4];
+
+	memset(mem, 0, sizeof(*mem));
+	if (q[x] > 3) return x + 1;
+	mb_bwt_set_intv(bwt, q[x], &ik);
+	for (i = x + 1; i < len; ++i) { // forward search
+		if (q[i] < 4) {
+			c = 3 - q[i];
+			mb_bwt_extend(bwt, &ik, ok, 0);
+			if (ok[c].size < (uint64_t)max_intv && i - x >= min_len) {
+				*mem = ok[c];
+				mem->info = (uint64_t)x<<32 | (uint64_t)(i + 1);
+				return i + 1;
+			}
+			ik = ok[c];
+		} else return i + 1;
+	}
+	return len;
+}
+
 // find super MEMs (SMEMs). See ropebwt3
 int64_t mb_bwt_smem(const mb_bwt_t *f, uint32_t len, const uint8_t *q, int64_t x, int64_t min_len, int64_t min_occ, mb_sai_t *p)
 {

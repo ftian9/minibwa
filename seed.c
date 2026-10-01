@@ -21,7 +21,23 @@ KRADIX_SORT_INIT(mb_anchor, mb_anchor_t, key_anchor, 8)
  * Seeding *
  ***********/
 
-void mb_seed_intv(void *km, const mb_bwt_t *bwt, int32_t len, const uint8_t *seq, int32_t min_len, int32_t max_sub_occ, mb_sai_v *v)
+static void mb_seed_pass3(void *km, const mb_bwt_t *bwt, int32_t len, const uint8_t *seq, int32_t min_len, int32_t max_mem_intv, mb_sai_v *v)
+{
+	int64_t x = 0;
+	if (max_mem_intv <= 0) return;
+	while (x < len) {
+		mb_sai_t p;
+		if (seq[x] < 4) {
+			x = mb_bwt_seed3(bwt, len, seq, x, min_len, max_mem_intv, &p);
+			if (p.size > 0) {
+				Kgrow(km, mb_sai_t, v->a, v->n, v->m);
+				v->a[v->n++] = p;
+			}
+		} else ++x;
+	}
+}
+
+void mb_seed_intv(void *km, const mb_bwt_t *bwt, int32_t len, const uint8_t *seq, int32_t min_len, int32_t max_sub_occ, int32_t max_mem_intv, mb_sai_v *v)
 {
 	int64_t x = 0, i, n_a0;
 	mb_sai_t p;
@@ -51,9 +67,10 @@ void mb_seed_intv(void *km, const mb_bwt_t *bwt, int32_t len, const uint8_t *seq
 			}
 		} while (x < en);
 	}
+	mb_seed_pass3(km, bwt, len, seq, min_len, max_mem_intv, v);
 }
 
-void mb_seed_intv_batch(void *km, const mb_bwt_t *bwt, int32_t n_seq, const int32_t *len, uint8_t *const* seq, int32_t min_len, int32_t max_sub_occ, mb_sai_v *v)
+void mb_seed_intv_batch(void *km, const mb_bwt_t *bwt, int32_t n_seq, const int32_t *len, uint8_t *const* seq, int32_t min_len, int32_t max_sub_occ, int32_t max_mem_intv, mb_sai_v *v)
 { // identical to mb_seed_intv() though the order of intervals is often different
 	const int max_batch_size = 50;
 	mb_smem_entry_t *s;
@@ -98,6 +115,8 @@ void mb_seed_intv_batch(void *km, const mb_bwt_t *bwt, int32_t n_seq, const int3
 	}
 	if (n_s > 0)
 		mb_bwt_smem_batch(km, bwt, n_s, s);
+	for (i = 0; i < n_seq; ++i) // pass 3: bwa-mem LAST-like seeds
+		mb_seed_pass3(km, bwt, len[i], seq[i], min_len, max_mem_intv, &v[i]);
 	kfree(km, nv);
 	kfree(km, s);
 }
